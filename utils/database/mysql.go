@@ -3,6 +3,7 @@ package database
 import (
 	"fmt"
 	"mertani-golang/config"
+	ur "mertani-golang/features/users/repository"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -19,7 +20,7 @@ func MysqlInit(cfg config.DatabaseMysql) (*gorm.DB, error) {
 
 func MysqlMigrate(db *gorm.DB) error {
 	err := db.AutoMigrate(
-	//repository here
+		&ur.User{},
 	)
 
 	if err != nil {
