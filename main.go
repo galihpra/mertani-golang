@@ -19,4 +19,9 @@ func main() {
 	if err := database.MysqlMigrate(dbConnection); err != nil {
 		panic(err)
 	}
+
+	var jwtConfig = new(config.JWT)
+	if err := jwtConfig.LoadFromEnv(); err != nil {
+		panic(err)
+	}
 }
