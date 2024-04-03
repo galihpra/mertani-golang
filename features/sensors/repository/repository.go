@@ -2,9 +2,11 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"io"
 	"mertani-golang/features/sensors"
 	"mertani-golang/utils/cloudinary"
+	"strings"
 
 	"gorm.io/gorm"
 )
@@ -53,6 +55,10 @@ func (repo *sensorRepository) Create(data sensors.Sensor) error {
 	inputDB.UserId = data.UserId
 
 	if err := repo.db.Create(inputDB).Error; err != nil {
+		if strings.Contains(err.Error(), "Duplicate") {
+			return errors.New("duplicate: sensor name already exist")
+		}
+
 		return err
 	}
 

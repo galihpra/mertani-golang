@@ -73,6 +73,11 @@ func (hdl *sensorHandler) Create() echo.HandlerFunc {
 				return c.JSON(http.StatusBadRequest, response)
 			}
 
+			if strings.Contains(err.Error(), "duplicate") {
+				response["message"] = strings.ReplaceAll(err.Error(), "duplicate: ", "")
+				return c.JSON(http.StatusBadRequest, response)
+			}
+
 			if strings.Contains(err.Error(), "unauthorized") {
 				response["message"] = "unauthorized"
 				return c.JSON(http.StatusBadRequest, response)
