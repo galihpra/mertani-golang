@@ -15,13 +15,6 @@ type Sensor struct {
 
 	ImageUrl string
 	ImageRaw io.Reader
-
-	Details []Detail
-}
-
-type Detail struct {
-	Id   uint
-	Spec string
 }
 
 type Handler interface {

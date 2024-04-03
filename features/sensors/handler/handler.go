@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"fmt"
 	"mertani-golang/config"
 	"mertani-golang/features/sensors"
 	"mertani-golang/helper/tokens"
@@ -55,11 +54,7 @@ func (hdl *sensorHandler) Create() echo.HandlerFunc {
 		parseInput.Description = request.Description
 		parseInput.UserId = userId
 
-		file, err := c.FormFile("image")
-		if err != nil {
-			response["message"] = "error retrieving uploaded file"
-			return c.JSON(http.StatusBadRequest, response)
-		}
+		file, _ := c.FormFile("image")
 		if file != nil {
 			src, err := file.Open()
 			if err != nil {
@@ -67,18 +62,8 @@ func (hdl *sensorHandler) Create() echo.HandlerFunc {
 			}
 			defer src.Close()
 
-			request.Image = src
+			parseInput.ImageRaw = src
 		}
-
-		parseInput.ImageRaw = request.Image
-
-		for _, detail := range request.Details {
-			parseInput.Details = append(parseInput.Details, sensors.Detail{
-				Spec: detail.Spec,
-			})
-		}
-
-		fmt.Println(parseInput)
 
 		if err := hdl.service.Create(*parseInput); err != nil {
 			c.Logger().Error(err)

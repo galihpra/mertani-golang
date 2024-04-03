@@ -23,7 +23,6 @@ func MysqlMigrate(db *gorm.DB) error {
 	err := db.AutoMigrate(
 		&ur.User{},
 		&sr.Sensor{},
-		&sr.Detail{},
 	)
 
 	if err != nil {
