@@ -27,4 +27,5 @@ func (router *Routes) UserRouter() {
 
 func (router *Routes) SensorRouter() {
 	router.Server.POST("/sensors", router.SensorHandler.Create(), echojwt.JWT([]byte(router.JWTKey)))
+	router.Server.GET("/sensors", router.SensorHandler.GetAll())
 }

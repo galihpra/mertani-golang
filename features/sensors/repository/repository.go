@@ -64,3 +64,24 @@ func (repo *sensorRepository) Create(data sensors.Sensor) error {
 
 	return nil
 }
+
+func (repo *sensorRepository) GetAll() ([]sensors.Sensor, error) {
+	var dataSensor []Sensor
+
+	if err := repo.db.Find(&dataSensor).Error; err != nil {
+		return nil, err
+	}
+
+	var result []sensors.Sensor
+	for _, sensor := range dataSensor {
+		result = append(result, sensors.Sensor{
+			Id:          sensor.Id,
+			Name:        sensor.Name,
+			ImageUrl:    sensor.ImageUrl,
+			Description: sensor.Description,
+			UserId:      sensor.UserId,
+		})
+	}
+
+	return result, nil
+}

@@ -91,3 +91,32 @@ func (hdl *sensorHandler) Create() echo.HandlerFunc {
 		return c.JSON(http.StatusCreated, response)
 	}
 }
+
+func (hdl *sensorHandler) GetAll() echo.HandlerFunc {
+	return func(c echo.Context) error {
+		var response = make(map[string]any)
+
+		result, err := hdl.service.GetAll()
+		if err != nil {
+			c.Logger().Error(err)
+
+			response["message"] = "internal server error"
+			return c.JSON(http.StatusInternalServerError, response)
+		}
+
+		var data = make([]GetResponse, len(result))
+		for i, sensor := range result {
+			data[i] = GetResponse{
+				Id:          sensor.Id,
+				Name:        sensor.Name,
+				Description: sensor.Description,
+				Image:       sensor.ImageUrl,
+				UserId:      sensor.UserId,
+			}
+		}
+
+		response["message"] = "get all sensors success"
+		response["data"] = data
+		return c.JSON(http.StatusOK, response)
+	}
+}

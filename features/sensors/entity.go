@@ -19,12 +19,15 @@ type Sensor struct {
 
 type Handler interface {
 	Create() echo.HandlerFunc
+	GetAll() echo.HandlerFunc
 }
 
 type Service interface {
 	Create(newSensor Sensor) error
+	GetAll() ([]Sensor, error)
 }
 
 type Repository interface {
 	Create(newSensor Sensor) error
+	GetAll() ([]Sensor, error)
 }
