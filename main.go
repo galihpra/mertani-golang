@@ -15,6 +15,10 @@ import (
 	sr "mertani-golang/features/sensors/repository"
 	ss "mertani-golang/features/sensors/service"
 
+	dh "mertani-golang/features/devices/handler"
+	dr "mertani-golang/features/devices/repository"
+	ds "mertani-golang/features/devices/service"
+
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
@@ -58,6 +62,10 @@ func main() {
 	sensorService := ss.NewSensorService(sensorRepository)
 	sensorHandler := sh.NewSensorHandler(sensorService, *jwtConfig)
 
+	deviceRepository := dr.NewDeviceRepository(dbConnection, cloudinary)
+	deviceService := ds.NewDeviceService(deviceRepository)
+	deviceHandler := dh.NewDeviceHandler(deviceService, *jwtConfig)
+
 	app := echo.New()
 	app.Use(middleware.Recover())
 	app.Use(middleware.CORS())
@@ -67,6 +75,7 @@ func main() {
 		Server:        app,
 		UserHandler:   userHandler,
 		SensorHandler: sensorHandler,
+		DeviceHandler: deviceHandler,
 	}
 
 	route.InitRouter()

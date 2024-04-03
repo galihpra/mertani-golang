@@ -94,7 +94,7 @@ func (repo *sensorRepository) Delete(SensorId, UserId uint) error {
 	}
 
 	if data.UserId != UserId {
-		return errors.New("not authorized: you are not authorized to delete this post")
+		return errors.New("not authorized: you are not authorized to delete this sensor")
 	}
 
 	if err := repo.db.Delete(&data).Error; err != nil {
@@ -112,7 +112,7 @@ func (repo *sensorRepository) Update(UserId uint, updateSensor sensors.Sensor) e
 	}
 
 	if data.UserId != UserId {
-		return errors.New("not authorized: you are not authorized to update this post")
+		return errors.New("not authorized: you are not authorized to update this sensor")
 	}
 
 	if updateSensor.ImageRaw != nil {
