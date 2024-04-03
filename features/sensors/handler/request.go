@@ -9,10 +9,4 @@ type CreateRequest struct {
 	Image io.Reader
 
 	UserId uint
-
-	Details []Detail
-}
-
-type Detail struct {
-	Spec string `json:"spec" form:"spec"`
 }

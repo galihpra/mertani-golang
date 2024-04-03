@@ -1,11 +1,11 @@
 package handler
 
 import (
-	"fmt"
 	"mertani-golang/config"
 	"mertani-golang/features/sensors"
 	"mertani-golang/helper/tokens"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -55,11 +55,7 @@ func (hdl *sensorHandler) Create() echo.HandlerFunc {
 		parseInput.Description = request.Description
 		parseInput.UserId = userId
 
-		file, err := c.FormFile("image")
-		if err != nil {
-			response["message"] = "error retrieving uploaded file"
-			return c.JSON(http.StatusBadRequest, response)
-		}
+		file, _ := c.FormFile("image")
 		if file != nil {
 			src, err := file.Open()
 			if err != nil {
@@ -67,24 +63,19 @@ func (hdl *sensorHandler) Create() echo.HandlerFunc {
 			}
 			defer src.Close()
 
-			request.Image = src
+			parseInput.ImageRaw = src
 		}
-
-		parseInput.ImageRaw = request.Image
-
-		for _, detail := range request.Details {
-			parseInput.Details = append(parseInput.Details, sensors.Detail{
-				Spec: detail.Spec,
-			})
-		}
-
-		fmt.Println(parseInput)
 
 		if err := hdl.service.Create(*parseInput); err != nil {
 			c.Logger().Error(err)
 
 			if strings.Contains(err.Error(), "validate") {
 				response["message"] = strings.ReplaceAll(err.Error(), "validate: ", "")
+				return c.JSON(http.StatusBadRequest, response)
+			}
+
+			if strings.Contains(err.Error(), "duplicate") {
+				response["message"] = strings.ReplaceAll(err.Error(), "duplicate: ", "")
 				return c.JSON(http.StatusBadRequest, response)
 			}
 
@@ -99,5 +90,162 @@ func (hdl *sensorHandler) Create() echo.HandlerFunc {
 
 		response["message"] = "create sensor success"
 		return c.JSON(http.StatusCreated, response)
+	}
+}
+
+func (hdl *sensorHandler) GetAll() echo.HandlerFunc {
+	return func(c echo.Context) error {
+		var response = make(map[string]any)
+
+		result, err := hdl.service.GetAll()
+		if err != nil {
+			c.Logger().Error(err)
+
+			response["message"] = "internal server error"
+			return c.JSON(http.StatusInternalServerError, response)
+		}
+
+		var data = make([]GetResponse, len(result))
+		for i, sensor := range result {
+			data[i] = GetResponse{
+				Id:          sensor.Id,
+				Name:        sensor.Name,
+				Description: sensor.Description,
+				Image:       sensor.ImageUrl,
+				UserId:      sensor.UserId,
+			}
+		}
+
+		response["message"] = "get all sensors success"
+		response["data"] = data
+		return c.JSON(http.StatusOK, response)
+	}
+}
+
+func (hdl *sensorHandler) Delete() echo.HandlerFunc {
+	return func(c echo.Context) error {
+		var response = make(map[string]any)
+
+		SensorId, err := strconv.Atoi(c.Param("id"))
+		if err != nil {
+			c.Logger().Error(err)
+
+			response["message"] = "invalid sensor id"
+		}
+
+		token := c.Get("user")
+		if token == nil {
+			response["message"] = "unauthorized access"
+			return c.JSON(http.StatusUnauthorized, response)
+		}
+
+		UserId, err := tokens.ExtractToken(hdl.jwtConfig.Secret, token.(*jwt.Token))
+		if err != nil {
+			c.Logger().Error(err)
+
+			response["message"] = "unauthorized"
+			return c.JSON(http.StatusUnauthorized, response)
+		}
+
+		if err := hdl.service.Delete(uint(SensorId), uint(UserId)); err != nil {
+			c.Logger().Error(err)
+
+			if strings.Contains(err.Error(), "not found: ") {
+				response["message"] = strings.ReplaceAll(err.Error(), "not found: ", "")
+				return c.JSON(http.StatusNotFound, response)
+			}
+
+			if strings.Contains(err.Error(), "not authorized: ") {
+				response["message"] = strings.ReplaceAll(err.Error(), "not authorized: ", "")
+				return c.JSON(http.StatusNotFound, response)
+			}
+
+			response["message"] = "internal server error"
+			return c.JSON(http.StatusInternalServerError, response)
+		}
+
+		response["message"] = "delete sensor success"
+		return c.JSON(http.StatusOK, response)
+	}
+}
+
+func (hdl *sensorHandler) Update() echo.HandlerFunc {
+	return func(c echo.Context) error {
+		var response = make(map[string]any)
+		var request = new(CreateRequest)
+
+		id, err := strconv.Atoi(c.Param("id"))
+		if err != nil {
+			c.Logger().Error(err)
+
+			response["message"] = "invalid sensor id"
+		}
+
+		token := c.Get("user")
+		if token == nil {
+			response["message"] = "unauthorized access"
+			return c.JSON(http.StatusUnauthorized, response)
+		}
+
+		userId, err := tokens.ExtractToken(hdl.jwtConfig.Secret, token.(*jwt.Token))
+		if err != nil {
+			c.Logger().Error(err)
+
+			response["message"] = "unauthorized"
+			return c.JSON(http.StatusUnauthorized, response)
+		}
+
+		if c.Bind(request); err != nil {
+			c.Logger().Error(err)
+
+			response["message"] = "bad request"
+			return c.JSON(http.StatusBadRequest, response)
+		}
+
+		var parseInput = new(sensors.Sensor)
+		parseInput.Id = uint(id)
+		parseInput.Name = request.Name
+		parseInput.Description = request.Description
+
+		file, _ := c.FormFile("image")
+		if file != nil {
+			src, err := file.Open()
+			if err != nil {
+				return err
+			}
+			defer src.Close()
+
+			parseInput.ImageRaw = src
+		}
+
+		if err := hdl.service.Update(uint(userId), *parseInput); err != nil {
+			c.Logger().Error(err)
+
+			if strings.Contains(err.Error(), "validate: ") {
+				response["message"] = strings.ReplaceAll(err.Error(), "validate: ", "")
+				return c.JSON(http.StatusBadRequest, response)
+			}
+
+			if strings.Contains(err.Error(), "not found: ") {
+				response["message"] = strings.ReplaceAll(err.Error(), "not found: ", "")
+				return c.JSON(http.StatusNotFound, response)
+			}
+
+			if strings.Contains(err.Error(), "duplicate") {
+				response["message"] = strings.ReplaceAll(err.Error(), "duplicate: ", "")
+				return c.JSON(http.StatusBadRequest, response)
+			}
+
+			if strings.Contains(err.Error(), "not authorized: ") {
+				response["message"] = strings.ReplaceAll(err.Error(), "not authorized: ", "")
+				return c.JSON(http.StatusNotFound, response)
+			}
+
+			response["message"] = "internal server error"
+			return c.JSON(http.StatusInternalServerError, response)
+		}
+
+		response["message"] = "update sensor success"
+		return c.JSON(http.StatusOK, response)
 	}
 }
