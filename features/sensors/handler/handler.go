@@ -5,6 +5,7 @@ import (
 	"mertani-golang/features/sensors"
 	"mertani-golang/helper/tokens"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -117,6 +118,53 @@ func (hdl *sensorHandler) GetAll() echo.HandlerFunc {
 
 		response["message"] = "get all sensors success"
 		response["data"] = data
+		return c.JSON(http.StatusOK, response)
+	}
+}
+
+func (hdl *sensorHandler) Delete() echo.HandlerFunc {
+	return func(c echo.Context) error {
+		var response = make(map[string]any)
+
+		SensorId, err := strconv.Atoi(c.Param("id"))
+		if err != nil {
+			c.Logger().Error(err)
+
+			response["message"] = "invalid sensor id"
+		}
+
+		token := c.Get("user")
+		if token == nil {
+			response["message"] = "unauthorized access"
+			return c.JSON(http.StatusUnauthorized, response)
+		}
+
+		UserId, err := tokens.ExtractToken(hdl.jwtConfig.Secret, token.(*jwt.Token))
+		if err != nil {
+			c.Logger().Error(err)
+
+			response["message"] = "unauthorized"
+			return c.JSON(http.StatusUnauthorized, response)
+		}
+
+		if err := hdl.service.Delete(uint(SensorId), uint(UserId)); err != nil {
+			c.Logger().Error(err)
+
+			if strings.Contains(err.Error(), "not found: ") {
+				response["message"] = strings.ReplaceAll(err.Error(), "not found: ", "")
+				return c.JSON(http.StatusNotFound, response)
+			}
+
+			if strings.Contains(err.Error(), "not authorized: ") {
+				response["message"] = strings.ReplaceAll(err.Error(), "not authorized: ", "")
+				return c.JSON(http.StatusNotFound, response)
+			}
+
+			response["message"] = "internal server error"
+			return c.JSON(http.StatusInternalServerError, response)
+		}
+
+		response["message"] = "delete sensor success"
 		return c.JSON(http.StatusOK, response)
 	}
 }

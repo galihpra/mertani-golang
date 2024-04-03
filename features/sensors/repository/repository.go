@@ -85,3 +85,21 @@ func (repo *sensorRepository) GetAll() ([]sensors.Sensor, error) {
 
 	return result, nil
 }
+
+func (repo *sensorRepository) Delete(SensorId, UserId uint) error {
+	var data Sensor
+
+	if err := repo.db.First(&data, SensorId).Error; err != nil {
+		return errors.New("sensor not found")
+	}
+
+	if data.UserId != UserId {
+		return errors.New("not authorized: you are not authorized to delete this post")
+	}
+
+	if err := repo.db.Delete(&data).Error; err != nil {
+		return err
+	}
+
+	return nil
+}

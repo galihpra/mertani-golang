@@ -20,14 +20,17 @@ type Sensor struct {
 type Handler interface {
 	Create() echo.HandlerFunc
 	GetAll() echo.HandlerFunc
+	Delete() echo.HandlerFunc
 }
 
 type Service interface {
 	Create(newSensor Sensor) error
 	GetAll() ([]Sensor, error)
+	Delete(SensorId, UserId uint) error
 }
 
 type Repository interface {
 	Create(newSensor Sensor) error
 	GetAll() ([]Sensor, error)
+	Delete(SensorId, UserId uint) error
 }

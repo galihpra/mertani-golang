@@ -28,3 +28,12 @@ func (srv *sensorService) GetAll() ([]sensors.Sensor, error) {
 
 	return result, nil
 }
+
+func (srv *sensorService) Delete(SensorId, UserId uint) error {
+	err := srv.repo.Delete(SensorId, UserId)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
