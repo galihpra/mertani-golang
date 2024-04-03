@@ -3,6 +3,7 @@ package database
 import (
 	"fmt"
 	"mertani-golang/config"
+	dr "mertani-golang/features/devices/repository"
 	sr "mertani-golang/features/sensors/repository"
 	ur "mertani-golang/features/users/repository"
 
@@ -23,6 +24,7 @@ func MysqlMigrate(db *gorm.DB) error {
 	err := db.AutoMigrate(
 		&ur.User{},
 		&sr.Sensor{},
+		&dr.Device{},
 	)
 
 	if err != nil {
