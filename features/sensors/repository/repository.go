@@ -103,3 +103,39 @@ func (repo *sensorRepository) Delete(SensorId, UserId uint) error {
 
 	return nil
 }
+
+func (repo *sensorRepository) Update(UserId uint, updateSensor sensors.Sensor) error {
+	var data Sensor
+
+	if err := repo.db.First(&data, updateSensor.Id).Error; err != nil {
+		return errors.New("sensor not found")
+	}
+
+	if data.UserId != UserId {
+		return errors.New("not authorized: you are not authorized to update this post")
+	}
+
+	if updateSensor.ImageRaw != nil {
+		url, err := repo.cloud.Upload(context.Background(), "sensors", updateSensor.ImageRaw)
+		if err != nil {
+			return err
+		}
+		if url != nil {
+			updateSensor.ImageUrl = *url
+		}
+	}
+
+	if err := repo.db.Model(&data).Updates(Sensor{
+		Name:        updateSensor.Name,
+		Description: updateSensor.Description,
+		ImageUrl:    updateSensor.ImageUrl,
+	}).Error; err != nil {
+		if strings.Contains(err.Error(), "Duplicate") {
+			return errors.New("duplicate: sensor name already exist")
+		}
+
+		return err
+	}
+
+	return nil
+}

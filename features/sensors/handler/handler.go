@@ -168,3 +168,84 @@ func (hdl *sensorHandler) Delete() echo.HandlerFunc {
 		return c.JSON(http.StatusOK, response)
 	}
 }
+
+func (hdl *sensorHandler) Update() echo.HandlerFunc {
+	return func(c echo.Context) error {
+		var response = make(map[string]any)
+		var request = new(CreateRequest)
+
+		id, err := strconv.Atoi(c.Param("id"))
+		if err != nil {
+			c.Logger().Error(err)
+
+			response["message"] = "invalid sensor id"
+		}
+
+		token := c.Get("user")
+		if token == nil {
+			response["message"] = "unauthorized access"
+			return c.JSON(http.StatusUnauthorized, response)
+		}
+
+		userId, err := tokens.ExtractToken(hdl.jwtConfig.Secret, token.(*jwt.Token))
+		if err != nil {
+			c.Logger().Error(err)
+
+			response["message"] = "unauthorized"
+			return c.JSON(http.StatusUnauthorized, response)
+		}
+
+		if c.Bind(request); err != nil {
+			c.Logger().Error(err)
+
+			response["message"] = "bad request"
+			return c.JSON(http.StatusBadRequest, response)
+		}
+
+		var parseInput = new(sensors.Sensor)
+		parseInput.Id = uint(id)
+		parseInput.Name = request.Name
+		parseInput.Description = request.Description
+
+		file, _ := c.FormFile("image")
+		if file != nil {
+			src, err := file.Open()
+			if err != nil {
+				return err
+			}
+			defer src.Close()
+
+			parseInput.ImageRaw = src
+		}
+
+		if err := hdl.service.Update(uint(userId), *parseInput); err != nil {
+			c.Logger().Error(err)
+
+			if strings.Contains(err.Error(), "validate: ") {
+				response["message"] = strings.ReplaceAll(err.Error(), "validate: ", "")
+				return c.JSON(http.StatusBadRequest, response)
+			}
+
+			if strings.Contains(err.Error(), "not found: ") {
+				response["message"] = strings.ReplaceAll(err.Error(), "not found: ", "")
+				return c.JSON(http.StatusNotFound, response)
+			}
+
+			if strings.Contains(err.Error(), "duplicate") {
+				response["message"] = strings.ReplaceAll(err.Error(), "duplicate: ", "")
+				return c.JSON(http.StatusBadRequest, response)
+			}
+
+			if strings.Contains(err.Error(), "not authorized: ") {
+				response["message"] = strings.ReplaceAll(err.Error(), "not authorized: ", "")
+				return c.JSON(http.StatusNotFound, response)
+			}
+
+			response["message"] = "internal server error"
+			return c.JSON(http.StatusInternalServerError, response)
+		}
+
+		response["message"] = "update sensor success"
+		return c.JSON(http.StatusOK, response)
+	}
+}

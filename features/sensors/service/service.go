@@ -37,3 +37,12 @@ func (srv *sensorService) Delete(SensorId, UserId uint) error {
 
 	return nil
 }
+
+func (srv *sensorService) Update(UserId uint, updateSensor sensors.Sensor) error {
+	err := srv.repo.Update(UserId, updateSensor)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
